@@ -6,8 +6,11 @@ from app.utils import ApplicationConfigurator
 
 app = Flask(__name__)
 ph = PasswordHasher()
+
+# dev secret key & database
 app.config["SECRET_KEY"] = "KejF9nHarBUHnofa2rVMtKyR8Z7yapsrxTxh6EmN2eQgugkeL5UcdsYsW5K6CJGUuB8mXaJS9a8o4YuF5TzYtD64LqJpyQGwz4ETCj6YJzdcQG49H3nnD7vN9M2VPoiu"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///db.sqlite"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///devdb.sqlite"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
