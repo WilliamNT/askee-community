@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Copyright (c) 2022 - WilliamNT (https://skiby.net). Askee was developed by WilliamNT. WilliamNT is not responsible for any content/usecase of this software. -->
+    <!-- Compatibility -->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Site meta -->
+    <title>{% if self.title() %}{% block title %}{% endblock %}{% else %}{{ config.AC_SITE_TITLE }} - {{ config.AC_SITE_TAGLINE }}{% endif %}</title>
+    <meta name="description" content="{{ config.AC_SEO_DESCRIPTION }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='assets/site/favicon.ico') }}" type="image/x-icon">
+    <meta name="keywords" content="{{ config.AC_SEO_SITE_KEYWORDS }}">
+
+    {% if request.endpoint == "forum.post" %}
+    <meta name="author" content="{{ post.User.username or config.AC_PAGE_AUTHOR }}">
+    {% endif %}
+
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% if self.title() %}{{ self.title() }}{% else %}{{ config.AC_SITE_TITLE }} - {{ config.AC_SITE_TAGLINE }}{% endif %}">
+    <meta property="og:description" content="{{ config.AC_SEO_DESCRIPTION }}">
+    <meta property="og:image" content="{{ url_for('static', filename='assets/site/social_thumbnail.png') }}">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('general.index') }}" class="logo">
+            <img src="{{ url_for('static', filename='assets/site/logo.png') }}" alt="site logo" height="30" width="30">
+            <h3 id="sitename">{{ config.AC_SITE_TITLE }}</h3>
+            <p id="tagline">{{ config.AC_SITE_TAGLINE }}</p>
+        </a>
+        <div class="navigation">
+            <a href="{{ url_for('general.index') }}">Home</a>
+            <a href="">Info</a>
+            {% if "user" in session %}
+                <a class="button" href="{{ url_for('general.my_account') }}"><i class="fa-solid fa-user"></i>Account</a>
+            {% else %}
+                <a class="button" href="{{ url_for('security.sign_in') }}"><i class="fa-solid fa-arrow-right-to-bracket"></i>Sign in</a>
+            {%  endif %}
+        </div>
+    </nav>
+    <noscript>
+        <p class="noscript-warning">Looks like you disabled/blocked JavaScript for this website. Some site features may be broken because of this.</p>
+    </noscript>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="notification {{ category }}">
+                <p><i class="fa-solid fa-bell"></i>{{ message }}</p>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</body>
+</html>

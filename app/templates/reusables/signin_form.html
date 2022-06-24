@@ -1,0 +1,12 @@
+<div class="card">
+    <div class="card-header" id="colorful-header">
+        <h2>Sign in</h2>
+        <h3>Sign in to comment or publish content</h3>
+    </div>
+    <form class="form card-body" action="{{ url_for('security.sign_in') }}" method="POST">
+        <input type="text" placeholder="Email address" name="email">
+        <input type="password" placeholder="Password" name="password">
+        <button type="submit" class="auth-button"><i class="fa-solid fa-arrow-right-to-bracket"></i>Sign in</button>
+        <p>Or <b><a href="{{ url_for('security.sign_up') }}">become a member</a></b></p>
+    </form>
+</div>

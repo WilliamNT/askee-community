@@ -1,0 +1,13 @@
+<div class="card">
+    <div class="card-header" id="colorful-header">
+        <h2>Sign up</h2>
+        <h3>Join the {{ config.AC_SITE_TITLE }} community</h3>
+    </div>
+    <form class="form card-body" action="{{ url_for('security.sign_up') }}" method="POST">
+        <input type="text" placeholder="Username" name="username">
+        <input type="text" placeholder="Email address" name="email">
+        <input type="password" placeholder="Password" name="password">
+        <button type="submit" class="auth-button"><i class="fa-solid fa-arrow-right-to-bracket"></i>Sign up</button>
+        <p>Or <b><a href="{{ url_for('security.sign_in') }}">sign in</a></b> if you're already a member</p>
+    </form>
+</div>

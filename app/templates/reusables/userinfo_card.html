@@ -1,0 +1,10 @@
+<div class="card">
+    <div class="card-body">
+        <h3 style="text-align: center; margin-top: 6px; border: 0;">Howdy, {{ session["username"] }}</h5>
+        <p style="text-align: center;">
+            <a href="{{ url_for('security.sign_out') }}">Sign out</a>&nbsp;|&nbsp;
+            <a href="{{ url_for('general.my_account') }}">My account</a>&nbsp;|&nbsp;
+            <a href="{{ url_for('forum.composer') }}">New post</a>
+        </p>
+    </div>
+</div>
