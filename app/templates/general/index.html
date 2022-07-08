@@ -1,34 +1,35 @@
 {% extends "skeleton.html" %}
 
 {% block content %}
-<main class="content">
-    <div class="main-content">
-        {% if pinned_posts %}
         <div class="section-header">
             <h1>Pinned by site admins<i class="fa-solid fa-thumbtack section-title-icon"></i></h1>
-            <p><a href="">All pinned posts</a></p>
+            <p><a href=""><i class="fa-solid fa-layer-group"></i>See all</a></p>
         </div>
-            {% for pinned_post in pinned_posts %}
-                {% include "reusables/post_card.html" %}
+        {% if pinned_posts %}
+            {% for post in pinned_posts | reverse %}
+                {% with post=post %}
+                    {% include "reusables/post_card.html" %}
+                {% endwith %}
             {% endfor %}
+        {% else %}
+        <div class="card card-body">
+            <i>The administrators of this site haven't pinned anything yet</i>
+        </div>
         {% endif %}
 
-        <h1 class="section-header">Community posts<i class="fa-solid fa-signs-post section-title-icon"></i></h3>
+    <div class="section-header">
+        <h1>Community posts<i class="fa-solid fa-signs-post section-title-icon"></i></h3>
+        <p><a href=""><i class="fa-solid fa-layer-group"></i>See all</a></p>
     </div>
-    <div class="sidebar">
-        {% if "user" in session %}
-        {% include "reusables/userinfo_card.html" %}
-        {% else %}
-        {% include "reusables/signin_form.html" %}
-        {% endif %}
-        <div class="card card-body" id="home_site_description">
-            <h3>About us</h3>
-            <p>{{ config.AC_SEO_DESCRIPTION }}</p>
-        </div>
-        <div class="card card-body" id="home_system_description">
-            <h3>Copyright</h3>
-            <p>This community is running on Askee, a forum software developed by <a href="https://github.com/WilliamNT">WilliamNT</a>.</p>
-        </div>
+    {% if posts %}
+        {% for post in posts | reverse %}
+            {% with post=post %}
+                {% include "reusables/post_card.html" %}
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+    <div class="card card-body">
+        <i>Nothing to see yet. Why not <b><a href="{{ url_for('forum.composer') }}">publish</a></b> something?</i>
     </div>
-</main>
+    {% endif %}
 {% endblock %}

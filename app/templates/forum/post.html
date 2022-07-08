@@ -1,7 +1,22 @@
 {% extends "skeleton.html" %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<main class="content">
-    <h1>POST</h1>
-</main>
+<div class="section-header">
+    <h1>{{ post.Post.title }}</h1>
+    Published by <b><a href="{{ url_for('general.user_profile', user_id=post.User.id) }}">{{ post.User.username }}</a></b>
+     in <b><a href="{{ url_for('forum.category', category=post.Post.category) }}">{{ post.Post.category }}</a></b>
+     on {{ post.Post.created_at.strftime("%Y.%m.%d. %H:%M") }} (UTC)
+</div>
+<div class="card card-body post">
+    <div class="markdown">
+        {{ post.Post.markdown | markdown }}
+    </div>
+    <div class="card-footer">
+        {% if session["user"] == post.User.id %}
+        <b><a href="{{ url_for('forum.editor', post_id=post.Post.id) }}"><i class="fa-solid fa-file-pen"></i>Edit, delete or lock this post</a></b>
+        {% endif %}
+        Last edited: {{ post.Post.updated_at.strftime("%Y.%m.%d. %H:%M") }} (UTC)
+    </div>
+</div>
 {% endblock %}

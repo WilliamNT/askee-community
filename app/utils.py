@@ -1,8 +1,12 @@
 import json
 import os
+import sys
+from argon2 import PasswordHasher
+from flask import session, abort
+from functools import wraps
 
 class ApplicationConfigurator():
-    # Do not directly modify these values. Set custom properties in resources/config.json
+    # Do not directly modify these values. Set custom properties in resources/config.json (refer to the readme for more information)
     DEFAULT_SITENAME = "New Q&A forum"
     DEFAULT_SITETAGLINE = "The site owner has not finished setting up the forum yet. Come back later!"
     DEFAULT_SEODESCRIPTION = "This is where the site's introduction goes."
@@ -10,6 +14,7 @@ class ApplicationConfigurator():
     DEFAULT_SEOTITLESEPARATOR = "-"
     DEFAULT_SEOSITEKEYWORDS = "forum, community, askee"
     DEFAULT_PAGEAUTHOR = "Somebody"
+    DEFAULT_CONTENTLIABILITYWARNING = False
 
     def __init__(self) -> None:
         # Site about
@@ -20,6 +25,7 @@ class ApplicationConfigurator():
         self.seoTitleSeparator = self.DEFAULT_SEOTITLESEPARATOR
         self.seoSiteKeywords = self.DEFAULT_SEOSITEKEYWORDS
         self.pageAuthor = self.DEFAULT_PAGEAUTHOR
+        self.contentLiabilityWarning = self.DEFAULT_CONTENTLIABILITYWARNING
 
         self.loadConfig()
         
@@ -29,56 +35,70 @@ class ApplicationConfigurator():
             config = None
             with open(configPath, encoding="utf-8") as config:
                 config = json.load(config)
+            
+            try:
+                self.siteName = config["siteName"]
+                self.siteTagline = config["siteTagline"]
+                self.seoDescription = config["seoDescription"]
+                self.seoTitleFormat = config["seoTitleFormat"]
+                self.seoTitleSeparator = config["seoTitleSeparator"]
+                self.seoSiteKeywords = config["seoSiteKeywords"]
+                self.pageAuthor = config["pageAuthor"]
+                self.contentLiabilityWarning = config["contentLiabilityWarning"]
+            except KeyError:
+                print(F"[ASKEE] Invalid configuration file (resources/config.json). JSON key {sys.exc_info()[1]} is missing from the configuration. Proceeding with default values.")
 
-            self.siteName = config["siteName"]
-            self.siteTagline = config["siteTagline"]
-            self.seoDescription = config["seoDescription"]
-            self.seoTitleFormat = config["seoTitleFormat"]
-            self.seoTitleSeparator = config["seoTitleSeparator"]
-            self.seoSiteKeywords = config["seoSiteKeywords"]
-            self.pageAuthor = config["pageAuthor"]
-
-            print("Configuration loaded.")
+            print("[ASKEE] Configuration loaded.")
         else:
-            self.siteName = self.DEFAULT_SITENAME
-            self.siteTagline = self.DEFAULT_SITETAGLINE
-            self.seoDescription = self.DEFAULT_SEODESCRIPTION
-            self.seoTitleFormat = self.DEFAULT_SEOTITLEFORMAT
-            self.seoTitleSeparator = self.DEFAULT_SEOTITLESEPARATOR
-            self.seoSiteKeywords = self.DEFAULT_SEOSITEKEYWORDS
-            self.pageAuthor = self.DEFAULT_PAGEAUTHOR
-            print("Configuration file (resources/config.json) could not be found. Proceeding with default values. This will lead to poor user experience. Please set up the site properly.")
+            print("[ASKEE] Configuration file (resources/config.json) could not be found, proceeding with default values. This will lead to poor user experience. Please set up the site properly.")
 
     def reloadConfiguration(self) -> None:
-        print("Reloading configuration")
+        """
+        Reloads the configuration. Basically it calls loadConfig() and prints a log message before.
+        """
+        print("[ASKEE] Reloading configuration")
         self.loadConfig()
 
+    def resetConfig(self) -> None:
+        """
+        Resets the configuration to the application's built in defaults values.
+        """
+        self.siteName = self.DEFAULT_SITENAME
+        self.siteTagline = self.DEFAULT_SITETAGLINE
+        self.seoDescription = self.DEFAULT_SEODESCRIPTION
+        self.seoTitleFormat = self.DEFAULT_SEOTITLEFORMAT
+        self.seoTitleSeparator = self.DEFAULT_SEOTITLESEPARATOR
+        self.seoSiteKeywords = self.DEFAULT_SEOSITEKEYWORDS
+        self.pageAuthor = self.DEFAULT_PAGEAUTHOR
+        self.contentLiabilityWarning = self.DEFAULT_CONTENTLIABILITYWARNING
+
+        print("[ASKEE] Configuration reset done")
+
 class TemplateParser():
-    LEGAL_KEYWORDS = [
-        "%PAGE_TITLE%",
-        "%SEPARATOR%",
-        "%SITE_NAME%",
-        "%SITE_TAGLINE%"
-    ]
-
-
-    def titleParser(raw: str, config: dict, pageTitle: str=None) -> str:
-        raw = str(raw)
+    def parseTitle(raw: str, config: dict, pageTitle: str=None) -> str:
+        """
+        Parses the raw content title and returns a string with the templates
+        replaced with the actual values
+        """
 
         if "%PAGE_TITLE%" in raw:
             if pageTitle:
-                raw.replace("%PAGE_TITLE%", pageTitle)
+                raw = raw.replace("%PAGE_TITLE%", pageTitle)
             else:
                 raise ValueError("%PAGE_TITLE% was found in raw string but pageTitle was not set.")
         if "%SEPARATOR%" in raw:
-            raw.replace("%SEPARATOR%", config.seoTitleSeparator)
+            raw = raw.replace("%SEPARATOR%", config.seoTitleSeparator)
         if "%SITE_NAME%" in raw:
-            raw.replace("%SITE_NAME%", config.siteName)
+            raw = raw.replace("%SITE_NAME%", config.siteName)
         if "%SITE_TAGLINE%" in raw:
-            raw.replace("%SITE_TAGLINE%", config.siteTagline)
+            raw = raw.replace("%SITE_TAGLINE%", config.siteTagline)
         return raw
 
-    def textParser(raw: str, templates: dict) -> str:
+    def parseText(raw: str, templates: dict) -> str:
+        """
+        Parses the raw text and replaces templates based on the
+        templates dictionary provided
+        """
         raw = str(raw)
         for template, replacement in templates.items():
             if not str(template).startswith("%") or not str(template).endswith("%") or not str(template).isupper():
@@ -86,3 +106,18 @@ class TemplateParser():
             if template in raw:
                 raw = raw.replace(template, replacement)
         return raw
+
+def protectedPage(f):
+    """
+    Redirects unauthorized users to the sign in page
+    """
+    @wraps(f)
+    def decoratedFunction(*args, **kwargs):
+        if not "user" in session:
+            return abort(403)
+        return f(*args, **kwargs)
+    return decoratedFunction
+
+# objects
+configurator = ApplicationConfigurator()
+ph = PasswordHasher()

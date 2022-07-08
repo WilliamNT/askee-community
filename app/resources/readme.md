@@ -25,7 +25,8 @@ config.json:
   - seoSiteKeywords: These are the default keywords for the site. The recommended number of keywords is between 4-6. Seperate them with a comma.
   - pageAuthor: Fallback author name if for some reason the actual page has no author information available. It's also used in some cases where
   the content can't be connected to a specific author. It's recommended to set this to the site's name or the team maintaining it.
-
+  - contentLiabilityWarning: This is a prewritten liability warning displayed in the sidebar on post pages.
+  - postCategories: A list of categories for members of the site to choose from.
 ### config.json example
 config.json should be placed in the resources folder.
 `{
@@ -35,5 +36,7 @@ config.json should be placed in the resources folder.
     "seoTitleFormat": "",
     "seoTitleSeparator": "",
     "seoSiteKeywords": "",
-    "pageAuthor": ""
+    "pageAuthor": "",
+    "contentLiabilityWarning": true,
+    "postCategories": []
 }`

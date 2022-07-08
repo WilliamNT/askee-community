@@ -1,2 +1,4 @@
 app/resources/config.json
 app/devdb.sqlite
+testpost.md
+**/__pycache__/

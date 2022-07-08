@@ -1,8 +1,23 @@
-<a href="">
+<a href="{{ url_for('forum.post', post_id=post.Post.id) }}" title="{{ post.Post.title }}">
     <div class="card">
         <div class="card-body">
-            <h3><i class="fa-solid fa-circle-question"></i>Do you find turtles interesting?</h5>
-            <p>I mean sure, they are interesting creatures but do you find their looks sexy?</p>
+            <h3>
+                {% if post.Post.pinned %}
+                <i class="fa-solid fa-thumbtack" title="This post is marked as pinned"></i>
+                {% elif post.Post.sticky %}
+                <i class="fa-solid fa-file-circle-exclamation" title="This post is marked as sticky"></i>
+                {% elif post.User.is_system %}
+                <i class="fa-solid fa-shield-halved" title="This post was published by the system"></i>
+                {% else %}
+                <i class="fa-solid fa-clone" title="This is a regular post"></i>
+                {% endif %}
+                {{ post.Post.title }}
+            </h3>
+            {% if post.Post.excerpt %}
+            <p>{{ post.Post.excerpt}}</p>
+            {% else %}
+            <p>{{ post.User.username }} didn't write an excerpt. Click on the post to find out what it's about.</p>
+            {% endif %}
         </div>
     </div>
 </a>

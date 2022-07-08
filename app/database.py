@@ -1,10 +1,12 @@
-from app import db, ph, configurator
+from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy import func
-from flask import flash, session
+from flask import flash, session, redirect, url_for
 import re
-import app.helpers as helpers
-import markdown
+from app.utils import ph
+from argon2.exceptions import VerifyMismatchError
+
+db = SQLAlchemy()
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,7 +91,7 @@ class User(db.Model):
         db.session.add(self)
         db.session.commit()
         flash("Account created", "success")
-        helpers.signIn(email, password)
+        Authentication.signIn(email, password)
         return self
 
     def update(self, is_admin: bool=None, username: str=None, email: str=None, password: str=None) -> object:
@@ -130,7 +132,7 @@ class User(db.Model):
         """
         db.session.delete(self)
         db.session.commit()
-        helpers.signOut()
+        self.signOut()
         flash("Your account has been deleted successfully", "success")
 
     def flushContents(self) -> None:
@@ -142,22 +144,54 @@ class User(db.Model):
 
         flash("All user generated content has been deleted", "success")
 
+class Authentication():
+    def signIn(email: str, password: str) -> None:
+        """
+        Handles the sign in process, is independent of the user object
+        """
+        if not email:
+            flash("Please provide an email address", "warning")
+            return redirect(url_for("security.sign_in"))
+        if not password:
+            flash("Please provide a password", "warning")
+            return redirect(url_for("security.sign_in"))
+            
+        user = User.query.filter_by(email=email.lower()).first()
+        if user:
+            try:
+                ph.verify(user.password, password)
+                session["user"] = user.id
+                session["username"] = user.username
+
+                flash("Sign in successful", "success")
+                return redirect(url_for("general.index"))
+            except VerifyMismatchError:
+                flash("Incorrect password", "warning")
+                return redirect(url_for("security.sign_in"))
+        else:
+            flash(f"No account uses \"{email}\"", "warning")
+            return redirect(url_for("security.sign_in"))
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
-    content = db.Column(db.Text, nullable=False)
     markdown = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=False)
     category = db.Column(db.String, nullable=False)
-    sticky = db.Column(db.Boolean, default=False)
+    sticky = db.Column(db.Boolean, default=False) # first item shown in the post's category
     protected = db.Column(db.Boolean, default=False) # only signed in users can see the contents
-    like = db.Column(db.Integer, nullable=False)
+    like = db.Column(db.Integer, nullable=False, default=0)
+    dislike = db.Column(db.Integer, nullable=False, default=0)
     excerpt = db.Column(db.Text(200), nullable=True)
+    locked = db.Column(db.Boolean, default=False) # nobody can reply or edit the post
+    keywords = db.Column(db.String, nullable=False)
+    pinned = db.Column(db.Boolean, default=False) # shown in the pinned posts section
+    deleted = db.Column(db.Boolean, default=False) # the idea is that we can display a message saying the content was deleted
 
-    def create(self, title: str, content: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized") -> object:
+    def create(self, title: str, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
         """
         Create a new post in the database.
         """
@@ -168,17 +202,55 @@ class Post(db.Model):
         if len(title) > 120:
             return flash("Title length can't be longer than 100 characters")
 
-        if not content:
+        if not raw:
             return flash("Content must be provided. Post has not been created", "warning")
-        if len(content) < 100:
-            if not helpers.getCurrentAccount().is_admin or not helpers.getCurrentAccount().is_system:
-                return flash("Content length can't be shorter than 100 characters", "warning")
-        if len(content) > 3000:
+        if len(raw) < 10:
+            return flash("Content length can't be shorter than 10 characters", "warning")
+        if len(raw) > 3000:
             return flash("Content length can't be longer than 1000 characters", "warning")
-        
-        if not excerpt:
-            excerpt = configurator.seoDescription
 
+        self.title = title
+        self.markdown = raw
+        self.updated_by = session["user"]
+        self.user_id = session["user"]
+        self.category = category
+        self.sticky = sticky
+        self.protected = protected
+        self.locked = locked
+        self.keywords = keywords
+
+        db.session.add(self)
+        db.session.commit()
+        flash("Post published", "success")
+        return self
+
+    def update(self, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
+        """
+        Updates the current post in the database.
+        """
+
+        if raw and self.markdown != raw:
+            self.markdown = raw
+        if len(raw) < 10:
+            return flash("Content length can't be shorter than 10 characters", "warning")
+        if len(raw) > 3000:
+            return flash("Content length can't be longer than 1000 characters", "warning")
+
+        if category != self.category:
+            self.category = category
+        if self.sticky and self.sticky != sticky:
+            self.sticky = sticky
+        if self.protected and self.protected != protected:
+            self.protected = protected
+        if self.locked and self.locked != locked:
+            self.locked = locked
+        
+
+        self.updated_by = session["user"]
+        self.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        flash(f"Changes saved", "success")
         return self
 
     def transferOwnership(self, newOwnerId: int) -> None:

@@ -40,6 +40,13 @@ i.section-title-icon.fa-solid {
     margin-right: 0;
 }
 
+.truncate {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Navigation */
 .navbar {
     background-color: #f9f9f9;
@@ -174,13 +181,19 @@ i.fa-solid {
     flex-direction: column;
     flex-grow: 1;
     margin-right: 30px;
+    max-width: 800px;
 }
-
 
 .main-content > .card,
 .main-content > a .card,
 .section-header {
     margin-bottom: 20px;
+}
+
+.card-footer {
+    border-top: 1px solid #b3b3b3;
+    padding-top: 5px;
+    margin-top: 10px;
 }
 
 .main-content > *:last-child {
@@ -271,6 +284,52 @@ a .card:hover {
 .profile-picture {
     display: block;
     margin: auto;
+}
+
+.error-card {
+    max-width: 500px;
+    margin: 50px auto;
+    text-align: center;
+}
+
+.warning-card {
+    border-color: #ffb13d;
+    border-width: 2px;
+}
+
+/* Markdown */
+
+.markdown {
+    color: #222;
+    font-weight: 600;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+    font-weight: 900;
+}
+
+code {
+    font-family: 'Source Code Pro';
+    padding: 2px 3px;
+    background-color: #d3d3d3;
+    border-radius: 3px;
+    font-size: small;
+    font-weight: normal;
+}
+
+.markdown img {
+    border-radius: 3px;
+    display: block;
+    margin: 5px auto;
+}
+
+.markdown hr {
+    margin: 10px auto;
 }
 
 /* Forms */

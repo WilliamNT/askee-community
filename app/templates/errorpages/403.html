@@ -1,0 +1,9 @@
+{% extends "skeleton.html" %}
+{% block title %}Forbidden (403){% endblock %}
+
+{% block content %}
+<div class="card-body card">
+    <h1>403</h1>
+    <p>You have to <b><a href="{{ url_for('security.sign_in') }}">sign in</a></b> to access this page</p>
+</div>
+{% endblock %}

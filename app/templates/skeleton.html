@@ -8,13 +8,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Site meta -->
-    <title>{% if self.title() %}{% block title %}{% endblock %}{% else %}{{ config.AC_SITE_TITLE }} - {{ config.AC_SITE_TAGLINE }}{% endif %}</title>
+    <title>{% if self.title() %}{% block title %}{% endblock %}{% else %}{{ config.AC_SITE_TITLE }}{% endif %}</title>
     <meta name="description" content="{{ config.AC_SEO_DESCRIPTION }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='assets/site/favicon.ico') }}" type="image/x-icon">
     <meta name="keywords" content="{{ config.AC_SEO_SITE_KEYWORDS }}">
 
     {% if request.endpoint == "forum.post" %}
-    <meta name="author" content="{{ post.User.username or config.AC_PAGE_AUTHOR }}">
+        {% if post and post.User.username %}
+        <meta name="author" content="{{ post.User.username  }}">
+        {% else %}
+        <meta name="author" content="{{ config.AC_PAGE_AUTHOR }}">
+        {% endif %}
     {% endif %}
 
     <meta property="og:url" content="{{ request.url }}">
@@ -25,8 +29,8 @@
     <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800" rel="stylesheet">
-
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Code+Pro:200,300,400,500,600,700,800,900">
     <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.1.1/css/all.css">
 </head>
@@ -48,6 +52,7 @@
         </div>
     </nav>
     <noscript>
+        
         <p class="noscript-warning">Looks like you disabled/blocked JavaScript for this website. Some site features may be broken because of this.</p>
     </noscript>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -59,6 +64,55 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
-    {% block content %}{% endblock %}
+    <main class="content">
+        {% if config["DEBUG"] %}
+            {% if LAYOUT_TYPE %}
+            <!-- LAYOUT_TYPE={{ LAYOUT_TYPE }} (this message is only visible in Flask's debug mode) -->
+            {% else %}
+            <!-- LAYOUT_TYPE is unset, defaulting to "rightSidebar". You can safely ignore this warning as by default we don't set this value for every page. (this message is only visible in Flask's debug mode) -->
+            {% endif %}
+        {% endif %}
+
+        {% if LAYOUT_TYPE == "full" %}
+            {% block content %}{% endblock %}
+        {% else %}
+            <div class="main-content">
+                {{ self.content() }}
+            </div>
+            <div class="sidebar">
+                {% if "user" in session %}
+                {% include "reusables/userinfo_card.html" %}
+                {% else %}
+                {% include "reusables/signin_form.html" %}
+                {% endif %}
+                <div class="card card-body" id="home_site_description">
+                    <h3>About us<i class="fa-solid fa-users section-title-icon"></i></h3>
+                    <p>{{ config.AC_SEO_DESCRIPTION }}</p>
+                </div>
+                {% if request.endpoint == "forum.post" %}
+                    {% if config.AC_CONTENT_LIABILITYWARNING %}
+                    <div class="card card-body warning-card">
+                        <h3>Warning<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
+                        <p>The content appearing in this post and the comments under it weren't verified by the site owner and don't reflect the site owner's opinion.
+                            If this post or any comment on this page infringes your rights, don't hesitate to contact the site owner!</p>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                {% if request.endpoint == "forum.editor" %}
+                    <div class="card card-body warning-card">
+                        <h3>Delete post<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
+                        <p>This action can't be undone. Links to this page will be broken after this.</p>
+                        <form class="card-footer" method="POST" action="{{ url_for('forum.delete_post', post_id=post.Post.id) }}">
+                            <button class="auth-button" type="submit"><i class="fa-solid fa-trash"></i>Delete this post</button>
+                        </form>
+                    </div>
+                {% endif %}
+                <div class="card card-body" id="home_system_description">
+                    <h3>Copyright<i class="fa-solid fa-copyright section-title-icon"></i></h3>
+                    <p>This community is running on Askee, a forum software developed by <a href="https://github.com/WilliamNT">WilliamNT</a>.</p>
+                </div>
+            </div>
+        {% endif %}
+    </main>
 </body>
 </html>
