@@ -1,0 +1,4 @@
+Flask
+Flask-SQLAlchemy
+argon2-cffi
+Flask-Markdown
