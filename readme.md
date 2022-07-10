@@ -3,5 +3,5 @@
 # Askee Community - Open source Flask forum
 Askee is a forum software written in Python using the Flask framework.
 
-##
-The projects is not even near finished at the moment. However feel free to make pull requests, open issues or fork the code.
+## Disclaimer
+The project is not even near finished at the moment. However feel free to make pull requests, open issues or fork the code.
