@@ -1,6 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for, abort, session
 from app.database import db, Post, User
-from app.utils import TemplateParser, configurator
+from app.utils import TemplateParser, configurator, protectedPage
 
 forum = Blueprint("forum", __name__)
 
@@ -10,6 +10,7 @@ def x():
     return redirect(url_for("general.index")), 301
 
 @forum.route("/composer/", methods=["GET", "POST"])
+@protectedPage
 def composer():
     if request.method == "POST":
         post = Post()
@@ -37,6 +38,7 @@ def post(post_id: int):
         abort(404), 404
 
 @forum.route("/post/<int:post_id>/editor/", methods=["GET", "POST"])
+@protectedPage
 def editor(post_id: int):
     if request.method == "POST":
         post = Post.query.filter_by(id=post_id).first()
@@ -56,6 +58,7 @@ def editor(post_id: int):
         return abort(404), 404
 
 @forum.post("/post/<int:post_id>/editor/delete/")
+@protectedPage
 def delete_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
     if post:

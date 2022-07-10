@@ -114,7 +114,7 @@ def protectedPage(f):
     @wraps(f)
     def decoratedFunction(*args, **kwargs):
         if not "user" in session:
-            return abort(403)
+            return abort(403), 403
         return f(*args, **kwargs)
     return decoratedFunction
 
