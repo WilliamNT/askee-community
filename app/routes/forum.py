@@ -13,13 +13,14 @@ def x():
 @protectedPage
 def composer():
     if request.method == "POST":
-        post = Post()
-        post.create(
+        post = Post.create(
             title = request.form.get("title"),
             raw = request.form.get("content"),
             excerpt = request.form.get("excerpt"),
             keywords = request.form.get("keywords")
         )
+        if not post:
+            return render_template("forum/composer.html")
         return redirect(url_for("forum.post", post_id=post.id))
     return render_template("forum/composer.html")
 
@@ -66,7 +67,7 @@ def delete_post(post_id):
             db.session.delete(post)
             db.session.commit()
             flash("Post deleted", "success")
-    
+
     return redirect(url_for("general.index"))
 
 @forum.get("/category/<category>/")
