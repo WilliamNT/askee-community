@@ -75,7 +75,7 @@ class User(db.Model):
         self.password = ph.hash(password)
         self.created_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
-        
+
         # ensuring that only one user is set as system
         users = User.query.all()
         if len(users) == 0:
@@ -113,7 +113,7 @@ class User(db.Model):
         if password:
             self.password = ph.hash(password)
         self.updated_at = datetime.utcnow()
-         
+
         if session["user"]:
             self.updated_by = session["user"]
         else:
@@ -155,7 +155,7 @@ class Authentication():
         if not password:
             flash("Please provide a password", "warning")
             return redirect(url_for("security.sign_in"))
-            
+
         user = User.query.filter_by(email=email.lower()).first()
         if user:
             try:
@@ -191,38 +191,45 @@ class Post(db.Model):
     pinned = db.Column(db.Boolean, default=False) # shown in the pinned posts section
     deleted = db.Column(db.Boolean, default=False) # the idea is that we can display a message saying the content was deleted
 
-    def create(self, title: str, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
+    @classmethod
+    def create(cls, title: str, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
         """
         Create a new post in the database.
         """
         if not title:
-            return flash("Title must be provided. Post has not been created", "warning")
+            flash("Title must be provided. Post has not been created", "warning")
+            return None
         if len(title) < 3:
-            return flash("Title length can't be shorter than 3 characters.")
+            flash("Title length can't be shorter than 3 characters.")
+            return None
         if len(title) > 120:
-            return flash("Title length can't be longer than 100 characters")
-
+            flash("Title length can't be longer than 100 characters")
+            return None
         if not raw:
-            return flash("Content must be provided. Post has not been created", "warning")
+            flash("Content must be provided. Post has not been created", "warning")
+            return None
         if len(raw) < 10:
-            return flash("Content length can't be shorter than 10 characters", "warning")
+            flash("Content length can't be shorter than 10 characters", "warning")
+            return None
         if len(raw) > 3000:
-            return flash("Content length can't be longer than 1000 characters", "warning")
+            flash("Content length can't be longer than 1000 characters", "warning")
+            return None
 
-        self.title = title
-        self.markdown = raw
-        self.updated_by = session["user"]
-        self.user_id = session["user"]
-        self.category = category
-        self.sticky = sticky
-        self.protected = protected
-        self.locked = locked
-        self.keywords = keywords
+        post = cls()
+        post.title = title
+        post.markdown = raw
+        post.updated_by = session["user"]
+        post.user_id = session["user"]
+        post.category = category
+        post.sticky = sticky
+        post.protected = protected
+        post.locked = locked
+        post.keywords = keywords
 
-        db.session.add(self)
+        db.session.add(post)
         db.session.commit()
         flash("Post published", "success")
-        return self
+        return post
 
     def update(self, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
         """
@@ -244,7 +251,7 @@ class Post(db.Model):
             self.protected = protected
         if self.locked and self.locked != locked:
             self.locked = locked
-        
+
 
         self.updated_by = session["user"]
         self.updated_at = datetime.utcnow()
