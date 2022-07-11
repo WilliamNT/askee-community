@@ -205,10 +205,12 @@ i.fa-solid {
     width: 300px;
 }
 
+#commentsArea > *,
 .sidebar > * {
     margin-bottom: 10px;
 }
 
+#commentsArea > *:last-child,
 .sidebar > *:last-child {
     margin-bottom: 0;
 }
@@ -304,6 +306,14 @@ a .card:hover {
     font-weight: 600;
 }
 
+.markdown * {
+    margin-bottom: 5px;
+}
+
+.markdown *:last-child {
+    margin-bottom: 0px;
+}
+
 .markdown h1,
 .markdown h2,
 .markdown h3,
@@ -330,6 +340,13 @@ code {
 
 .markdown hr {
     margin: 10px auto;
+}
+
+blockquote {
+    margin-left: 15px;
+    padding-left: 5px;
+    border-left: 3px solid #222;
+    font-style: italic;
 }
 
 /* Forms */

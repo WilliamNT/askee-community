@@ -21,13 +21,14 @@ def sign_up():
         return redirect(url_for("general.index"))
 
     if request.method == "POST":
-        user = User()
-        user.create(
+        user = User.create(
             username = request.form.get("username"),
             email = request.form.get("email"),
             password = request.form.get("password"),
             is_admin = False # Users cannot become admins via the public sign up form 
         )
+        if not user:
+            return redirect(url_for("security.sign_up"))
 
     return render_template("security/signup.html")
 

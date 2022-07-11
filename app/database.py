@@ -1,11 +1,12 @@
+import arrow
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy import func
-from flask import flash, session, redirect, url_for
+from flask import flash, jsonify, render_template, session, redirect, url_for
 import re
-from app.utils import ph
+from app.utils import ph, configurator
 from argon2.exceptions import VerifyMismatchError
-
+import bleach
 db = SQLAlchemy()
 
 class User(db.Model):
@@ -23,76 +24,98 @@ class User(db.Model):
 
     # EMAIL_REGEX = re.compile("^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$", re.IGNORECASE)
 
-    def create(self, username: str, email: str, password: str, is_admin: bool=False) -> object:
+    @classmethod
+    def create(cls, username: str, email: str, password: str, is_admin: bool=False) -> object:
         """
-        Creates a new user in the database
+        Creates a new user in the database. If there are 0 other users in the User table,
+        the user will become the system user. This user is needed for admins to anonimously
+        publish content. This user has no password.
         """
 
-        # no need to store the email in any other format than lowercase
+        # no need to store the email in it's original format
         email = email.lower()
+        utcStamp = datetime.utcnow()
+        # fix to avoid difference in update and create stamp (milliseconds will differ, no matter how close the code lines are)
 
         if not email:
-            return flash("You have to provide an email address", "warning")
+            flash("You have to provide an email address", "warning")
+            return None
         if len(email) <= 3:
             # https://stackoverflow.com/questions/1423195/what-is-the-actual-minimum-length-of-an-email-address-as-defined-by-the-ietf
-            return flash("Email address is too short", "warning")
+            flash("Email address is too short", "warning")
+            return None
         if len(email) > 255:
-            return flash("Email address is too long (max. 120 characters)", "warning")
+            flash("Email address is too long (max. 120 characters)", "warning")
+            return None
 
         if not username:
-            return flash("You have to provide a username", "warning")
+            flash("You have to provide a username", "warning")
+            return None
         if len(username) < 6:
-            return flash("Username is too short (min. 6 characters)", "warning")
+            flash("Username is too short (min. 6 characters)", "warning")
+            return None
         if len(username) > 80:
-            return flash("Username is too long (max. 80 characters)", "warning")
+            flash("Username is too long (max. 80 characters)", "warning")
+            return None
         if username.lower() == email.lower():
-            return flash("Username cannot be the same as email", "warning")
+            flash("Username cannot be the same as email", "warning")
+            return None
         if not re.match("^[a-zA-Z0-9_]", username):
-            return flash("Username can only contain lower and upper case letters (A-Z), numbers (0-9) and _")
+            flash("Username can only contain lower and upper case letters (A-Z), numbers (0-9) and _")
+            return None
 
-        if not password:
-            return flash("You have to provide a password", "warning")
-        if len(password) < 8:
-            return flash("Password is too short (min. 8 characters)", "warning")
-        if len(password) > 100:
-            return flash("Password is too long (max. 100 characters)", "warning")
-        if password == username:
-            return flash("Password cannot be the same as username", "warning")
-        if password == email:
-            return flash("Password cannot be the same as email address", "warning")
+        userCount = User.query.count()
 
-        # delaying database queries for performance gain on lower end systems
+        if not password and userCount != 0:
+            flash("You have to provide a password", "warning")
+            return None
+        if len(password) < 8 and userCount != 0:
+            flash("Password is too short (min. 8 characters)", "warning")
+            return None
+        if len(password) > 100 and userCount != 0:
+            flash("Password is too long (max. 100 characters)", "warning")
+            return None
+        if password == username and userCount != 0:
+            flash("Password cannot be the same as username", "warning")
+            return None
+        if password == email and userCount != 0:
+            flash("Password cannot be the same as email address", "warning")
+            return None
+
+        user = cls()
+        # delaying complex database queries for performance gain on lower end systems
         if not User.query.filter(func.lower(User.username) == func.lower(username)).first():
-            self.username = username
+            user.username = username
         else:
-            return flash("Username already in use", "warning")
+            flash("Username already in use", "warning")
+            return None
 
         if not User.query.filter(func.lower(User.email) == func.lower(email)).first():
-            self.email = str(email).lower()
+            user.email = str(email).lower()
         else:
-            return flash("Email address already in use", "warning")
+            flash("Email address already in use", "warning")
+            return None
 
-        self.password = ph.hash(password)
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        user.password = ph.hash(password)
+        user.created_at = utcStamp
+        user.updated_at = utcStamp
 
         # ensuring that only one user is set as system
-        users = User.query.all()
-        if len(users) == 0:
-            self.is_system = True
-            self.is_admin = True
-            self.locked = False
+        if userCount == 0:
+            user.is_system = True
+            user.is_admin = True
+            user.locked = False
         else:
-            self.is_system = False
-            self.is_admin = is_admin
+            user.is_system = False
+            user.is_admin = is_admin
             if is_admin == True:
-                self.locked = False
+                user.locked = False
 
-        db.session.add(self)
+        db.session.add(user)
         db.session.commit()
         flash("Account created", "success")
         Authentication.signIn(email, password)
-        return self
+        return user
 
     def update(self, is_admin: bool=None, username: str=None, email: str=None, password: str=None) -> object:
         """
@@ -175,10 +198,11 @@ class Authentication():
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
+    rendered = db.Column(db.Text, nullable=False)
     markdown = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    updated_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=False)
     category = db.Column(db.String, nullable=False)
     sticky = db.Column(db.Boolean, default=False) # first item shown in the post's category
@@ -194,7 +218,7 @@ class Post(db.Model):
     @classmethod
     def create(cls, title: str, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
         """
-        Create a new post in the database.
+        Create a new post in the database
         """
         if not title:
             flash("Title must be provided. Post has not been created", "warning")
@@ -215,9 +239,12 @@ class Post(db.Model):
             flash("Content length can't be longer than 1000 characters", "warning")
             return None
 
+        utcStamp = datetime.utcnow()
+
         post = cls()
         post.title = title
         post.markdown = raw
+        post.rendered = bleach.clean(raw)
         post.updated_by = session["user"]
         post.user_id = session["user"]
         post.category = category
@@ -225,6 +252,9 @@ class Post(db.Model):
         post.protected = protected
         post.locked = locked
         post.keywords = keywords
+        post.excerpt = excerpt
+        post.created_at = utcStamp
+        post.updated_at = utcStamp
 
         db.session.add(post)
         db.session.commit()
@@ -234,30 +264,50 @@ class Post(db.Model):
     def update(self, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
         """
         Updates the current post in the database.
+
+        We also check for changes, and if none, no database
+        connection will be ever made for performance gain
+        and bandwidth saving.
         """
 
+        anyChanges = False
+        utcStamp = datetime.utcnow()
+
         if raw and self.markdown != raw:
+            anyChanges = True
             self.markdown = raw
+            self.rendered = bleach.clean(raw)
         if len(raw) < 10:
             return flash("Content length can't be shorter than 10 characters", "warning")
         if len(raw) > 3000:
             return flash("Content length can't be longer than 1000 characters", "warning")
 
         if category != self.category:
+            anyChanges = True
             self.category = category
         if self.sticky and self.sticky != sticky:
+            anyChanges = True
             self.sticky = sticky
         if self.protected and self.protected != protected:
+            anyChanges = True
             self.protected = protected
         if self.locked and self.locked != locked:
+            anyChanges = True
             self.locked = locked
+        if excerpt and excerpt != self.excerpt:
+            anyChanges = True
+            self.excerpt = excerpt
 
 
         self.updated_by = session["user"]
-        self.updated_at = datetime.utcnow()
+        self.updated_at = utcStamp
 
-        db.session.commit()
-        flash(f"Changes saved", "success")
+        if anyChanges:
+            db.session.commit()
+            flash("Changes saved", "success")
+        else:
+            flash("You didn't make any changes", "warning")
+        
         return self
 
     def transferOwnership(self, newOwnerId: int) -> None:
@@ -265,3 +315,47 @@ class Post(db.Model):
         if newOwner:
             self.user_id = newOwner.id
         db.session.commit()
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_by = db.Column(db.Integer, db.ForeignKey(User.id), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey(User.id), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey(Post.id), nullable=False)
+    like = db.Column(db.Integer, nullable=False, default=0)
+    dislike = db.Column(db.Integer, nullable=False, default=0)
+    sticky = db.Column(db.Boolean, default=False) # comment on top
+    deleted = db.Column(db.Boolean, default=False) # the idea is that we can display a message saying the content was deleted
+
+    @classmethod
+    def create(cls, content: str, post_id: int, sticky: bool=False) -> object:
+        """
+        Saves a new comment in the database
+        """
+
+        error = None
+        if len(content) == 0:
+            error = {"error": "The comment's length can't be 0."}
+        if len(content) > 1000:
+            error = {"error": "The number of characters exceed 1000."}
+        
+        utcStamp = datetime.utcnow()
+        comment = cls()
+        comment.content = bleach.clean(content) # in case we want to support markdown in the future
+        comment.created_at = utcStamp
+        comment.updated_at = utcStamp
+        comment.updated_by = session["user"]
+        comment.user_id = session["user"]
+        comment.post_id = post_id
+        comment.sticky = sticky
+
+        if error:
+            return jsonify(error), 400
+        else:
+            db.session.add(comment)
+            db.session.commit()
+            
+            comment = db.session.query(Comment, User).filter(Comment.user_id == User.id, User.id == comment.user_id, Comment.id == comment.id).first()
+            return render_template("reusables/comment_card.html", comment=comment)

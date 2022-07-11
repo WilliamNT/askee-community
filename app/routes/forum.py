@@ -1,5 +1,7 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for, abort, session
-from app.database import db, Post, User
+from datetime import datetime
+import arrow
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, abort, session
+from app.database import db, Post, User, Comment
 from app.utils import TemplateParser, configurator, protectedPage
 
 forum = Blueprint("forum", __name__)
@@ -33,16 +35,24 @@ def post(post_id: int):
     post = db.session.query(Post, User).filter(Post.user_id == User.id, Post.id == post_id).first()
     # don't forget skeleton.html meta author tag in case you update this!
     if post:
+        if post.Post.protected:
+            return abort(403), 403
+        if post.Post.deleted:
+            return abort(410), 410
+        comments = db.session.query(Comment, User).filter(Comment.post_id == post_id, Comment.user_id == User.id, Comment.deleted == False).all()
         title = TemplateParser.parseTitle(configurator.seoTitleFormat, configurator, post.Post.title)
-        return render_template("forum/post.html", post=post, title=title)
+        return render_template("forum/post.html", post=post, title=title, comments=comments)
     else:
-        abort(404), 404
+        return abort(404), 404
 
 @forum.route("/post/<int:post_id>/editor/", methods=["GET", "POST"])
 @protectedPage
 def editor(post_id: int):
+    post = Post.query.filter_by(id=post_id).first()
+    if post.deleted:
+        return abort(404), 404
+
     if request.method == "POST":
-        post = Post.query.filter_by(id=post_id).first()
         if post:
             post.update(
                 raw = request.form.get("content"),
@@ -62,14 +72,35 @@ def editor(post_id: int):
 @protectedPage
 def delete_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
+    if post.deleted:
+        return abort(404), 404
+
     if post:
         if post.user_id == session["user"]:
-            db.session.delete(post)
+            post.updated_at = datetime.utcnow()
+            post.updated_by = 1 # 1 is the system's user id
+            post.sticky = False
+            post.protected = False
+            post.excerpt = None
+            post.locked = False
+            post.pinned = False
+            post.deleted = True
+
+            flash("Post marked as deleted", "success")
             db.session.commit()
-            flash("Post deleted", "success")
 
     return redirect(url_for("general.index"))
 
 @forum.get("/category/<category>/")
 def category(category: str):
     return render_template("forum/category.html")
+
+@forum.post("/post/<int:post_id>/submit-comment/")
+@protectedPage
+def new_comment(post_id):
+    post = Post.query.filter_by(id=post_id).first()
+    if post.deleted:
+        return abort(404), 404
+
+    # return already handled in the create function
+    return Comment.create(request.json["commentBody"], post.id, False)

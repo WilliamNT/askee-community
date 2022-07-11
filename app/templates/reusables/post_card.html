@@ -14,9 +14,9 @@
                 {{ post.Post.title }}
             </h3>
             {% if post.Post.excerpt %}
-            <p>{{ post.Post.excerpt}}</p>
+            <p class="truncate"><b>{{ post.User.username }}</b>: <i>{{ post.Post.excerpt}}</i></p>
             {% else %}
-            <p>{{ post.User.username }} didn't write an excerpt. Click on the post to find out what it's about.</p>
+            <p class="truncate">{{ post.User.username }} didn't write an excerpt. Click on the post to find out what it's about.</p>
             {% endif %}
         </div>
     </div>

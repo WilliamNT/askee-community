@@ -6,17 +6,40 @@
     <h1>{{ post.Post.title }}</h1>
     Published by <b><a href="{{ url_for('general.user_profile', user_id=post.User.id) }}">{{ post.User.username }}</a></b>
      in <b><a href="{{ url_for('forum.category', category=post.Post.category) }}">{{ post.Post.category }}</a></b>
-     on {{ post.Post.created_at.strftime("%Y.%m.%d. %H:%M") }} (UTC)
+     {{ post.Post.created_at | localizeDateTime }}
 </div>
 <div class="card card-body post">
     <div class="markdown">
-        {{ post.Post.markdown | markdown }}
+        {{ post.Post.rendered | markdown }}
     </div>
     <div class="card-footer">
         {% if session["user"] == post.User.id %}
         <b><a href="{{ url_for('forum.editor', post_id=post.Post.id) }}"><i class="fa-solid fa-file-pen"></i>Edit, delete or lock this post</a></b>
         {% endif %}
-        Last edited: {{ post.Post.updated_at.strftime("%Y.%m.%d. %H:%M") }} (UTC)
+        Last edited: {% if post.Post.created_at != post.Post.updated_at %}{{ post.Post.updated_at | localizeDateTime }}{% else %}never{% endif %}
     </div>
+</div>
+<div class="section-header">
+    <h3>Compose comment<i class="fa-solid fa-marker section-title-icon"></i></h3>
+</div>
+<div class="card card-body">
+    <textarea id="commentBody" cols="100" rows="5" placeholder="What do you think about this post?"></textarea>
+    <button type="button" onclick='submitComment("{{ url_for('forum.new_comment', post_id=post.Post.id) }}")' class="auth-button"><i class="fa-solid fa-comment-medical"></i>Publish</button>
+</div>
+<div class="section-header">
+    <h3>Comments<i class="fa-solid fa-comments section-title-icon"></i></h3>
+</div>
+<div id="commentsArea" data-comment-count="0">
+    {% if comments %}
+        {% for comment in comments %}
+            {% with comment=comment %}
+                {% include "reusables/comment_card.html" %}
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+        <div class="card card-body" id="no-comment-message">
+            <i>Nobody commented on this post yet</i>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

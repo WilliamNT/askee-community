@@ -2,11 +2,11 @@ import json
 import os
 import sys
 from argon2 import PasswordHasher
-from flask import session, abort
+from flask import session, abort, request
 from functools import wraps
 
 class ApplicationConfigurator():
-    # Do not directly modify these values. Set custom properties in resources/config.json (refer to the readme for more information)
+    # Do not directly modify these values. Set custom properties in resources/config.json (refer to the readme in the same directory for more information)
     DEFAULT_SITENAME = "New Q&A forum"
     DEFAULT_SITETAGLINE = "The site owner has not finished setting up the forum yet. Come back later!"
     DEFAULT_SEODESCRIPTION = "This is where the site's introduction goes."
@@ -15,9 +15,10 @@ class ApplicationConfigurator():
     DEFAULT_SEOSITEKEYWORDS = "forum, community, askee"
     DEFAULT_PAGEAUTHOR = "Somebody"
     DEFAULT_CONTENTLIABILITYWARNING = False
+    DEFAULT_POSTCATEGORIES = ["uncategorized"]
 
     def __init__(self) -> None:
-        # Site about
+        # site config
         self.siteName = self.DEFAULT_SITENAME
         self.siteTagline = self.DEFAULT_SITETAGLINE
         self.seoDescription = self.DEFAULT_SEODESCRIPTION
@@ -26,11 +27,39 @@ class ApplicationConfigurator():
         self.seoSiteKeywords = self.DEFAULT_SEOSITEKEYWORDS
         self.pageAuthor = self.DEFAULT_PAGEAUTHOR
         self.contentLiabilityWarning = self.DEFAULT_CONTENTLIABILITYWARNING
+        self.postCategories = self.DEFAULT_POSTCATEGORIES
+
+        # system config
+        self.releaseVersion = None
+        self.displaySystemMessages = False
+        self.timeZone = None
+        self.language = "en"
 
         self.loadConfig()
         
     def loadConfig(self) -> None:
-        configPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources/config.json")
+        configPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources", "config.json")
+        systemConfigPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "resources", "system.json")
+        if os.path.isfile(systemConfigPath):
+            systemConfig = None
+            with open(systemConfigPath, encoding="utf-8") as sysconfig:
+                systemConfig = json.load(sysconfig)
+
+            try:
+                self.releaseVersion = systemConfig["version"]
+                self.displaySystemMessages = systemConfig["displaySystemMessages"]
+                self.timeZone = systemConfig["timeZone"]
+                self.language = systemConfig["language"]
+            except KeyError:
+                print(F"[ASKEE] Invalid system configuration file (resources/system.json). JSON key {sys.exc_info()[1]} is missing from the configuration.")
+
+        else:
+            print("[ASKEE] System configuration not found. Attempting application shutdown...")
+            # this is from an older implementation, but I'm keeping the error message for future use: 
+            # [ASKEE] Failed to shutdown the application, however due to the missing system configuration an exception will occur at some point, most likely leading to data loss. Please stop the process manually.
+            # question: should we do this in another way?
+            RuntimeError("[ASKEE] Shutdown successful.")
+
         if os.path.isfile(configPath):
             config = None
             with open(configPath, encoding="utf-8") as config:
@@ -45,6 +74,7 @@ class ApplicationConfigurator():
                 self.seoSiteKeywords = config["seoSiteKeywords"]
                 self.pageAuthor = config["pageAuthor"]
                 self.contentLiabilityWarning = config["contentLiabilityWarning"]
+                self.postCategories = config["postCategories"]
             except KeyError:
                 print(F"[ASKEE] Invalid configuration file (resources/config.json). JSON key {sys.exc_info()[1]} is missing from the configuration. Proceeding with default values.")
 
@@ -71,6 +101,7 @@ class ApplicationConfigurator():
         self.seoSiteKeywords = self.DEFAULT_SEOSITEKEYWORDS
         self.pageAuthor = self.DEFAULT_PAGEAUTHOR
         self.contentLiabilityWarning = self.DEFAULT_CONTENTLIABILITYWARNING
+        self.postCategories = self.DEFAULT_POSTCATEGORIES
 
         print("[ASKEE] Configuration reset done")
 
@@ -113,8 +144,8 @@ def protectedPage(f):
     """
     @wraps(f)
     def decoratedFunction(*args, **kwargs):
-        # if not "user" in session:
-        #     return abort(403), 403
+        if not "user" in session:
+            return abort(403), 403
         return f(*args, **kwargs)
     return decoratedFunction
 

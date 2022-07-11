@@ -9,23 +9,31 @@
 
     <!-- Site meta -->
     <title>{% if self.title() %}{% block title %}{% endblock %}{% else %}{{ config.AC_SITE_TITLE }}{% endif %}</title>
-    <meta name="description" content="{{ config.AC_SEO_DESCRIPTION }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='assets/site/favicon.ico') }}" type="image/x-icon">
-    <meta name="keywords" content="{{ config.AC_SEO_SITE_KEYWORDS }}">
 
     {% if request.endpoint == "forum.post" %}
+        <meta name="description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
+        <meta property="og:description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
+        <meta name="og:type" content="article">
+        <meta name="keywords" content="{% if post.Post.keywords %}{{ post.Post.keywords }}{% else %}post, {{ post.Post.category }}, {{ post.User.username }}, {{ config.AC_SITE_TITLE }}{% endif %}">
         {% if post and post.User.username %}
         <meta name="author" content="{{ post.User.username  }}">
         {% else %}
         <meta name="author" content="{{ config.AC_PAGE_AUTHOR }}">
         {% endif %}
+    {% else %}
+        <meta name="description" content="{{ config.AC_SEO_DESCRIPTION }}">
+        <meta property="og:description" content="{{ config.AC_SEO_DESCRIPTION }}">
+        <meta name="og:type" content="website">
+        <meta name="keywords" content="{{ config.AC_SEO_SITE_KEYWORDS }}">
     {% endif %}
 
     <meta property="og:url" content="{{ request.url }}">
     <meta property="og:title" content="{% if self.title() %}{{ self.title() }}{% else %}{{ config.AC_SITE_TITLE }} - {{ config.AC_SITE_TAGLINE }}{% endif %}">
-    <meta property="og:description" content="{{ config.AC_SEO_DESCRIPTION }}">
     <meta property="og:image" content="{{ url_for('static', filename='assets/site/social_thumbnail.png') }}">
-
+    <meta property="og:image:alt" content="A question mark and exclamation mark in front of a light blue background">
+    <meta property="og:site_name" content="{{ config.AC_SITE_TITLE }}">
+    
     <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <!-- Google Fonts -->
@@ -93,8 +101,8 @@
                     {% if config.AC_CONTENT_LIABILITYWARNING %}
                     <div class="card card-body warning-card">
                         <h3>Warning<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
-                        <p>The content appearing in this post and the comments under it weren't verified by the site owner and don't reflect the site owner's opinion.
-                            If this post or any comment on this page infringes your rights, don't hesitate to contact the site owner!</p>
+                        <p>The content appearing on this page and the comments under it (if any) weren't verified by the site owner.
+                            If content on this page infringes your rights, don't hesitate to contact the site owner.</p>
                     </div>
                     {% endif %}
                 {% endif %}
@@ -114,5 +122,10 @@
             </div>
         {% endif %}
     </main>
+
+    {% if request.endpoint == "forum.post" %}
+    <!-- Post page interactivity -->
+    <script src="{{ url_for('static', filename='js/postPage.js') }}"></script>
+    {% endif %}
 </body>
 </html>

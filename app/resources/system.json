@@ -1,4 +1,6 @@
 {
-    "version": "v1.0",
-    "displaySystemMessages": true
+    "version": "1.0",
+    "displaySystemMessages": true,
+    "timeZone": "CET",
+    "language": "en"
 }
