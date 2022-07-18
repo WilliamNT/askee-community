@@ -1,9 +1,26 @@
 {% extends "skeleton.html" %}
-{% block title %}Editor{% endblock %}
+{% block title %}{{ createTitle("Editor") }}{% endblock %}
+
+{% block sidebar_content %}
+<div class="card card-body">
+    <h3>Post and author information<i class="fa-solid fa-circle-info section-title-icon"></i></h3>
+    <h4><i class="fa-solid fa-signature"></i>Author: {{ post.User.username }} {% if post.User.id == session["user"] %}(you){% endif %}</h4>
+    <h4><i class="fa-solid fa-fingerprint"></i>Author id: {{ post.User.id }}</h4>
+    <h4><i class="fa-solid fa-clock"></i>Registration: {{ post.User.created_at | localizeDateTime() }}</h4>
+    <h4><i class="fa-solid fa-calendar-day"></i>Published: {{ post.Post.created_at | localizeDateTime() }}</h4>
+</div>
+<div class="card card-body warning-card">
+    <h3>Delete post<i class="fa-solid fa-trash section-title-icon"></i></h3>
+    <p>This action can't be undone. Links to this page will be broken after this.</p>
+    <form class="card-footer" method="POST" action="{{ url_for('forum.delete_post', post_id=post.Post.id) }}">
+        <button class="error-button" type="submit"><i class="fa-solid fa-trash"></i>Delete this post</button>
+    </form>
+</div>
+{% endblock %}
 
 {% block content %}
 <div class="card">
-    <div class="card-header" id="colorful-header">
+    <div class="card-header colorful-header">
         <h2>Editor</h2>
     </div>
     <form class="form card-body" action="{{ url_for('forum.editor', post_id=post.Post.id) }}" method="POST">

@@ -1,5 +1,15 @@
 {% extends "skeleton.html" %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ createTitle(post.Post.title) }}{% endblock %}
+
+{% block sidebar_content %}
+    {% if config.AC_CONTENT_LIABILITYWARNING %}
+    <div class="card card-body warning-card">
+        <h3>Warning<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
+        <p>The content appearing on this page and the comments under it (if any) weren't verified by the site owner.
+            If content on this page infringes your rights, don't hesitate to contact the site owner.</p>
+    </div>
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="section-header">
@@ -29,7 +39,7 @@
 <div class="section-header">
     <h3>Comments<i class="fa-solid fa-comments section-title-icon"></i></h3>
 </div>
-<div id="commentsArea" data-comment-count="0">
+<div id="commentsArea" data-comment-count="{{ commentCount }}">
     {% if comments %}
         {% for comment in comments %}
             {% with comment=comment %}

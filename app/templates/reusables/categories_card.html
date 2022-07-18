@@ -1,0 +1,8 @@
+<div class="card card-body">
+    <h3>Categories<i class="fa-solid fa-tags section-title-icon"></i></h3>
+    <div class="flair-cloud">
+        {% for category in config.AC_POST_CATEGORIES %}
+        <a class="flair" href="{{ url_for('forum.category', category=category) }}">{{ category }}</a>
+        {% endfor %}
+    </div>
+</div>

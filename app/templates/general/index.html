@@ -1,21 +1,25 @@
 {% extends "skeleton.html" %}
 
+{% block sidebar_content %}
+    {% include("reusables/categories_card.html") %}
+{% endblock %}
+
 {% block content %}
-        <div class="section-header">
-            <h1>Pinned by site admins<i class="fa-solid fa-thumbtack section-title-icon"></i></h1>
-            <p><a href=""><i class="fa-solid fa-layer-group"></i>See all</a></p>
-        </div>
-        {% if pinned_posts %}
-            {% for post in pinned_posts | reverse %}
-                {% with post=post %}
-                    {% include "reusables/post_card.html" %}
-                {% endwith %}
-            {% endfor %}
-        {% else %}
-        <div class="card card-body">
-            <i>The administrators of this site haven't pinned anything yet</i>
-        </div>
-        {% endif %}
+    <div class="section-header">
+        <h1>Pinned by site admins<i class="fa-solid fa-thumbtack section-title-icon"></i></h1>
+        <p><a href=""><i class="fa-solid fa-layer-group"></i>See all</a></p>
+    </div>
+    {% if pinned_posts %}
+        {% for post in pinned_posts | reverse %}
+            {% with post=post %}
+                {% include "reusables/post_card.html" %}
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+    <div class="card card-body">
+        <i>The administrators of this site haven't pinned anything yet</i>
+    </div>
+    {% endif %}
 
     <div class="section-header">
         <h1>Community posts<i class="fa-solid fa-signs-post section-title-icon"></i></h3>

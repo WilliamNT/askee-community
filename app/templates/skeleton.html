@@ -12,20 +12,22 @@
     <link rel="shortcut icon" href="{{ url_for('static', filename='assets/site/favicon.ico') }}" type="image/x-icon">
 
     {% if request.endpoint == "forum.post" %}
-        <meta name="description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
-        <meta property="og:description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
-        <meta name="og:type" content="article">
-        <meta name="keywords" content="{% if post.Post.keywords %}{{ post.Post.keywords }}{% else %}post, {{ post.Post.category }}, {{ post.User.username }}, {{ config.AC_SITE_TITLE }}{% endif %}">
-        {% if post and post.User.username %}
-        <meta name="author" content="{{ post.User.username  }}">
-        {% else %}
-        <meta name="author" content="{{ config.AC_PAGE_AUTHOR }}">
+        {% if post %}
+            <meta name="description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
+            <meta property="og:description" content="{% if post.Post.excerpt %}{{ post.Post.excerpt }}{% else %}{{ config.AC_SEO_DESCRIPTION }}{% endif %}">
+            <meta name="keywords" content="{% if post.Post.keywords %}{{ post.Post.keywords }}{% else %}post, {{ post.Post.category }}, {{ post.User.username }}, {{ config.AC_SITE_TITLE }}{% endif %}">
+            <meta name="og:type" content="article">
+            {% if post and post.User.username %}
+            <meta name="author" content="{{ post.User.username  }}">
+            {% else %}
+            <meta name="author" content="{{ config.AC_PAGE_AUTHOR }}">
+            {% endif %}
         {% endif %}
     {% else %}
         <meta name="description" content="{{ config.AC_SEO_DESCRIPTION }}">
         <meta property="og:description" content="{{ config.AC_SEO_DESCRIPTION }}">
-        <meta name="og:type" content="website">
         <meta name="keywords" content="{{ config.AC_SEO_SITE_KEYWORDS }}">
+        <meta name="og:type" content="website">
     {% endif %}
 
     <meta property="og:url" content="{{ request.url }}">
@@ -50,8 +52,8 @@
             <p id="tagline">{{ config.AC_SITE_TAGLINE }}</p>
         </a>
         <div class="navigation">
-            <a href="{{ url_for('general.index') }}">Home</a>
-            <a href="">Info</a>
+            <a href="{{ url_for('general.index') }}"><i class="fa-solid fa-house"></i>Home</a>
+            <a href=""><i class="fa-solid fa-circle-info"></i>Info</a>
             {% if "user" in session %}
                 <a class="button" href="{{ url_for('general.my_account') }}"><i class="fa-solid fa-user"></i>Account</a>
             {% else %}
@@ -60,9 +62,11 @@
         </div>
     </nav>
     <noscript>
-        
-        <p class="noscript-warning">Looks like you disabled/blocked JavaScript for this website. Some site features may be broken because of this.</p>
+        <p class="system-warning">Looks like you disabled/blocked JavaScript for this website. Some site features may be broken because of this.</p>
     </noscript>
+    {% if session["isSystem"] %}
+    <p class="system-warning">You are browsing the site as the system user. Any content (comments, posts, edits, etc.) you create will display the system user icon publicly.</p>
+    {% endif %}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -93,28 +97,11 @@
                 {% else %}
                 {% include "reusables/signin_form.html" %}
                 {% endif %}
+                {% block sidebar_content %}{% endblock %}
                 <div class="card card-body" id="home_site_description">
                     <h3>About us<i class="fa-solid fa-users section-title-icon"></i></h3>
                     <p>{{ config.AC_SEO_DESCRIPTION }}</p>
                 </div>
-                {% if request.endpoint == "forum.post" %}
-                    {% if config.AC_CONTENT_LIABILITYWARNING %}
-                    <div class="card card-body warning-card">
-                        <h3>Warning<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
-                        <p>The content appearing on this page and the comments under it (if any) weren't verified by the site owner.
-                            If content on this page infringes your rights, don't hesitate to contact the site owner.</p>
-                    </div>
-                    {% endif %}
-                {% endif %}
-                {% if request.endpoint == "forum.editor" %}
-                    <div class="card card-body warning-card">
-                        <h3>Delete post<i class="fa-solid fa-triangle-exclamation section-title-icon"></i></h3>
-                        <p>This action can't be undone. Links to this page will be broken after this.</p>
-                        <form class="card-footer" method="POST" action="{{ url_for('forum.delete_post', post_id=post.Post.id) }}">
-                            <button class="auth-button" type="submit"><i class="fa-solid fa-trash"></i>Delete this post</button>
-                        </form>
-                    </div>
-                {% endif %}
                 <div class="card card-body" id="home_system_description">
                     <h3>Copyright<i class="fa-solid fa-copyright section-title-icon"></i></h3>
                     <p>This community is running on Askee, a forum software developed by <a href="https://github.com/WilliamNT">WilliamNT</a>.</p>

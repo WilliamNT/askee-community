@@ -1,0 +1,16 @@
+{% extends "skeleton.html" %}
+{% block title %}Categories{% endblock %}
+
+{% block content %}
+    <div class="section-header">
+        <h1>Categories<i class="fa-solid fa-tags section-title-icon"></i></h1>
+        <p>Welcome to the category browser! Here you can see a list of available categories in {{ config.AC_SITE_TITLE }}</p>
+    </div>
+    {% for category in config.AC_POST_CATEGORIES %}
+        <a href="{{ url_for('forum.category', category=category) }}">
+            <div class="card card-body">
+                <h2>{{ category }}</h2>
+            </div>
+        </a>
+    {% endfor %}
+{% endblock %}

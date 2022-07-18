@@ -19,7 +19,8 @@ def composer():
             title = request.form.get("title"),
             raw = request.form.get("content"),
             excerpt = request.form.get("excerpt"),
-            keywords = request.form.get("keywords")
+            keywords = request.form.get("keywords").lower(),
+            category = request.form.get("category").lower()
         )
         if not post:
             return render_template("forum/composer.html")
@@ -33,6 +34,7 @@ def pinned_posts():
 @forum.get("/post/<int:post_id>/")
 def post(post_id: int):
     post = db.session.query(Post, User).filter(Post.user_id == User.id, Post.id == post_id).first()
+    print(post)
     # don't forget skeleton.html meta author tag in case you update this!
     if post:
         if post.Post.protected:
@@ -40,8 +42,7 @@ def post(post_id: int):
         if post.Post.deleted:
             return abort(410), 410
         comments = db.session.query(Comment, User).filter(Comment.post_id == post_id, Comment.user_id == User.id, Comment.deleted == False).all()
-        title = TemplateParser.parseTitle(configurator.seoTitleFormat, configurator, post.Post.title)
-        return render_template("forum/post.html", post=post, title=title, comments=comments)
+        return render_template("forum/post.html", post=post, comments=comments, commentCount=len(comments))
     else:
         return abort(404), 404
 
@@ -49,7 +50,7 @@ def post(post_id: int):
 @protectedPage
 def editor(post_id: int):
     post = Post.query.filter_by(id=post_id).first()
-    if post.deleted:
+    if post and post.deleted:
         return abort(404), 404
 
     if request.method == "POST":
@@ -72,7 +73,7 @@ def editor(post_id: int):
 @protectedPage
 def delete_post(post_id):
     post = Post.query.filter_by(id=post_id).first()
-    if post.deleted:
+    if post and post.deleted:
         return abort(404), 404
 
     if post:
@@ -91,15 +92,25 @@ def delete_post(post_id):
 
     return redirect(url_for("general.index"))
 
-@forum.get("/category/<category>/")
-def category(category: str):
-    return render_template("forum/category.html")
+@forum.get("/categories/<category>/")
+def category(category: str, page=1):
+    page = request.args.get("p")
+    category = category.lower().capitalize()
+
+    if category in configurator.postCategories or category == "Uncategorized":
+        posts = db.session.query(Post, User).filter(User.id == Post.user_id, Post.deleted == False, Post.category == category).paginate(page, 10, error_out=False)
+        return render_template("forum/category.html", category=category, posts=posts)
+    return abort(404), 404
+
+@forum.get("/categories/")
+def categories():
+    return render_template("forum/categories.html")
 
 @forum.post("/post/<int:post_id>/submit-comment/")
 @protectedPage
 def new_comment(post_id):
     post = Post.query.filter_by(id=post_id).first()
-    if post.deleted:
+    if post and post.deleted:
         return abort(404), 404
 
     # return already handled in the create function

@@ -220,6 +220,7 @@ class Post(db.Model):
         """
         Create a new post in the database
         """
+
         if not title:
             flash("Title must be provided. Post has not been created", "warning")
             return None
@@ -238,6 +239,14 @@ class Post(db.Model):
         if len(raw) > 3000:
             flash("Content length can't be longer than 1000 characters", "warning")
             return None
+        if category.lower() != "uncategorized":
+            # obviously we don't trust anything comming from the client side, so we need hacks like this
+            category = category.lower().capitalize()
+            if category in configurator.postCategories:
+                category = category
+            else:
+                flash(f"Invalid post category \"{category}\"", "warning")
+                return None
 
         utcStamp = datetime.utcnow()
 
@@ -261,7 +270,7 @@ class Post(db.Model):
         flash("Post published", "success")
         return post
 
-    def update(self, raw: str, sticky: bool=False, excerpt: str= None, category: str="uncategorized", protected: bool=False, locked: bool=False, keywords: str=None) -> object:
+    def update(self, raw: str, sticky: bool=None, excerpt: str=None, category: str=None, protected: bool=None, locked: bool=None, keywords: str=None) -> object:
         """
         Updates the current post in the database.
 
@@ -282,16 +291,16 @@ class Post(db.Model):
         if len(raw) > 3000:
             return flash("Content length can't be longer than 1000 characters", "warning")
 
-        if category != self.category:
+        if category and category != self.category:
             anyChanges = True
             self.category = category
-        if self.sticky and self.sticky != sticky:
+        if sticky and sticky and self.sticky and self.sticky != sticky:
             anyChanges = True
             self.sticky = sticky
-        if self.protected and self.protected != protected:
+        if protected and self.protected and self.protected != protected:
             anyChanges = True
             self.protected = protected
-        if self.locked and self.locked != locked:
+        if locked and self.locked and self.locked != locked:
             anyChanges = True
             self.locked = locked
         if excerpt and excerpt != self.excerpt:

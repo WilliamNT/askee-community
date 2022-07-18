@@ -2,7 +2,7 @@
     <div class="card-body">
         <p>{{ comment.Comment.content }}</p>
         <div class="card-footer">
-            <p>By <b><a href="{{ url_for('general.user_profile', user_id=comment.User.id) }}">{{ comment.User.username }}</a></b> ({{ comment.Comment.updated_at | prettifyDateTime }})</p>
+            <p><b><a href="{{ url_for('general.user_profile', user_id=comment.User.id) }}">{{ comment.User.username }}</a></b> {{ comment.Comment.updated_at | localizeDateTime }}</p>
         </div>
     </div>
 </div>

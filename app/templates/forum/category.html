@@ -1,0 +1,36 @@
+{% extends "skeleton.html" %}
+{% block title %}{{ createTitle(category + " category") }}{% endblock %}
+
+{% block sidebar_content %}
+    {% include("reusables/categories_card.html") %}
+{% endblock %}
+
+{% block content %}
+    <div class="section-header">
+        <h1>{{ category }}<i class="fa-solid fa-tag section-title-icon"></i></h1>
+        <p>Welcome to the {{ category }} category! Here you can see everything posted under {{ category }}</p>
+    </div>
+    {% if posts.items | length > 0 %}
+        {% for post in posts.items | reverse %}
+            {% with post=post %}
+                {% include "reusables/post_card.html" %}
+            {% endwith %}
+        {% endfor %}
+    {% else %}
+        <div class="card card-body">
+            <i>Nothing to see yet. Why not <b><a href="{{ url_for('forum.composer') }}">publish</a></b> something?</i>
+        </div>
+    {% endif %}
+    <div class="pagination-footer">
+        {% if posts.has_prev %}
+        <a class="icon-button" href="{{ url_for('forum.category', category=category, page=posts.prev_num) }}"><i class="fa-solid fa-chevron-left"></i></a>
+        {% else %}
+        <p class="icon-button icon-button-disabled""><i class="fa-solid fa-chevron-left"></i></p>
+        {% endif %}
+        {% if posts.has_next %}
+        <a class="icon-button" href="{{ url_for('forum.category', category=category, page=posts.next_num) }}"><i class="fa-solid fa-chevron-right"></i></a>
+        {% else %}
+        <p class="icon-button icon-button-disabled""><i class="fa-solid fa-chevron-right"></i></p>
+        {% endif %}
+    </div>
+{% endblock %}

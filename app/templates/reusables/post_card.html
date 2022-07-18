@@ -13,11 +13,7 @@
                 {% endif %}
                 {{ post.Post.title }}
             </h3>
-            {% if post.Post.excerpt %}
-            <p class="truncate"><b>{{ post.User.username }}</b>: <i>{{ post.Post.excerpt}}</i></p>
-            {% else %}
-            <p class="truncate">{{ post.User.username }} didn't write an excerpt. Click on the post to find out what it's about.</p>
-            {% endif %}
+            <p class="truncate">Published by {{ post.User.username }} {{ post.Post.created_at | prettifyDateTime() }} in {{ post.Post.category }}</p>
         </div>
     </div>
 </a>

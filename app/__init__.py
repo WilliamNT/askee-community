@@ -1,8 +1,7 @@
-from flask import Flask, redirect, render_template, session, url_for, flash
-from app.utils import configurator
+from flask import Flask, jsonify, redirect, render_template, session, url_for, flash
+from app.utils import configurator, TemplateParser
 from flaskext.markdown import Markdown
 import arrow
-from dateutil import tz
 
 app = Flask(__name__)
 
@@ -81,6 +80,8 @@ def refreshSessionUserDetails() -> None:
             # if the user is not found, the account was most likely deleted
             session["user"] = user.id
             session["username"] = user.username
+            session["isAdmin"] = user.is_admin
+            session["isSystem"] = user.is_system
         else:
             session.clear()
             flash("There was an error with your session, please sign in again", "warning")
@@ -94,7 +95,7 @@ def configureSession() -> None:
     session.permanent = True
 
 @app.template_filter()
-def localizeDateTime(utcStamp):
+def localizeDateTime(utcStamp: str):
     """
     Retrieves the timezone of the system using the AC_SYSTEM_TIMEZONE variable and localizes the UTC time stamp.
     """
@@ -105,10 +106,19 @@ def localizeDateTime(utcStamp):
     return f"{stamp} ({app.config['AC_SYSTEM_TIMEZONE']})"
 
 @app.template_filter()
-def prettifyDateTime(utcStamp):
+def prettifyDateTime(utcStamp: str):
     """
     Retrieves the timezone of the system using the AC_SYSTEM_TIMEZONE variable and turns the UTC time stamp into a human friendly format.
     """
     stamp = arrow.get(utcStamp)
     stamp = stamp.to(app.config["AC_SYSTEM_TIMEZONE"])
     return stamp.humanize()
+
+@app.context_processor
+def createTitleUtility():
+    """
+    Returns the title for the page like defined in the site title template.
+    """
+    def createTitle(pageTitle: str):
+        return TemplateParser.parseTitle(app.config["AC_SEO_TITLE_FORMAT"], configurator, pageTitle)
+    return dict(createTitle=createTitle)
